@@ -1,0 +1,12 @@
+gym==0.21
+opencv-python
+matplotlib
+numpy
+neat-python
+
+
+# pip uninstall numpy -y
+# pip install numpy==1.25.2
+# pip install opencv-python
+# pip install neat-python
+
