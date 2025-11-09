@@ -1,28 +1,26 @@
 import neat
-import cv2  # Import cv2 for destroyAllWindows
+import cv2
 import numpy as np
+import traceback
 from car_env import CarEnv
-import pickle
-from elite_archive import save_to_archive
+from elite_archive import save_to_archive, load_elite
 
-# Global flag to signal a clean exit from the training loop
-EXIT_FLAG = False
+EXIT_FLAG = False  
 
 
-def eval_genomes(genomes, config):
+def eval_genomes(genomes, config, population=None):
     global EXIT_FLAG
     if EXIT_FLAG:
-        return  # Skip evaluation if we're quitting
+        return
 
     cars = []
-    nets = []
-    envs = []
-
     for genome_id, genome in genomes:
         net = neat.nn.FeedForwardNetwork.create(genome, config)
         env = CarEnv()
-        state = env.reset()
+        if population is not None:
+            env.current_generation = population.generation
 
+        state = env.reset()
         cars.append({
             'genome': genome,
             'net': net,
@@ -33,93 +31,100 @@ def eval_genomes(genomes, config):
             'steps': 0
         })
 
-    # Shared environment for visualization
     vis_env = CarEnv()
+    gen = population.generation if population is not None else 0
+    if gen <= 50:
+        step_limit = 8000
+    elif gen <= 75:
+        step_limit = 7000
+    else:
+        step_limit = 6000
 
-    step_limit = 500  # Max steps per run
     active_cars = len(cars)
 
     while active_cars > 0 and not EXIT_FLAG:
-        # List to store positions of all active cars for visualization
         car_positions = []
 
-        # Update all cars
         for car in cars:
             if not car['done'] and car['steps'] < step_limit:
-                # Get neural network output (discrete actions)
                 outputs = car['net'].activate(car['state'])
-                # Choose the action with highest output
-                try:
-                    action_idx = int(np.argmax(outputs))
-                except Exception:
-                    action_idx = 4
+                action_idx = int(np.argmax(outputs))
 
-                # Update car using the discrete action step helper
                 car['state'], reward, car['done'] = car['env'].step_discrete(
                     action_idx)
                 car['fitness'] += reward
                 car['steps'] += 1
 
-                # Add position for visualization if car is still active
                 if not car['done']:
                     car_positions.append(
                         (car['env'].car_pos, car['env'].car_angle))
 
-                # Check if car is done
-                if car['done'] or car['steps'] >= step_limit:
+                if car['steps'] >= step_limit or car['done']:
+                    car['done'] = True
                     active_cars -= 1
 
-                    # Bonus for surviving full duration
-                    if not car['done'] and car['steps'] >= step_limit:
-                        car['fitness'] += 10.0
-
-            # If car is done but still in simulation, add its final position
             elif not car['done']:
                 car_positions.append(
                     (car['env'].car_pos, car['env'].car_angle))
 
-        # Render all active cars
         key = vis_env.render(car_positions)
 
-        # Check for exit
         if key == ord('q') or key == 27:
             EXIT_FLAG = True
             cv2.destroyAllWindows()
             break
+        elif key == ord('s'):
+            print("Skipping generation...")
+            break
 
-    # Update fitness for all genomes
     for car in cars:
-        car['genome'].fitness = car['fitness']
-        # Save to elite archive if good enough
-        save_to_archive(car['genome'], car['fitness'])
+        if car['fitness'] is None or not np.isfinite(car['fitness']):
+            car['fitness'] = 0.0
+        car['genome'].fitness = float(car['fitness'])
+
+        if population is not None:
+            save_to_archive(car['genome'], car['fitness'],
+                            population.generation)
+        else:
+            save_to_archive(car['genome'], car['fitness'])
 
 
 def run(config_file):
     global EXIT_FLAG
 
-    config = neat.Config(neat.DefaultGenome,
-                         neat.DefaultReproduction,
-                         neat.DefaultSpeciesSet,
-                         neat.DefaultStagnation,
-                         config_file)
+    config = neat.Config(
+        neat.DefaultGenome,
+        neat.DefaultReproduction,
+        neat.DefaultSpeciesSet,
+        neat.DefaultStagnation,
+        config_file
+    )
 
     population = neat.Population(config)
     population.add_reporter(neat.StdOutReporter(True))
-    population.add_reporter(neat.StatisticsReporter())
+
+    elites = load_elite()
+    for genome, fitness, gen in elites:
+        if fitness is None or not np.isfinite(fitness):
+            fitness = 0.0
+        genome.fitness = float(fitness)
+        population.population[genome.key] = genome
+        p = neat.Population(config)
+
+    population.species.speciate(config, population.population, generation=0)
 
     while not EXIT_FLAG:
         try:
-            # Run for 1 generation at a time
-            winner = population.run(eval_genomes, 1)
+            winner = population.run(
+                lambda g, c: eval_genomes(g, c, population), 1)
         except Exception as e:
             print(f"An error occurred: {e}")
+            traceback.print_exc()
             break
 
-        # We manually break the loop after 50 generations or if EXIT_FLAG is set
-        if population.generation >= 600:
+        if population.generation >= 120:
             break
 
-    # Clean up at the end
     cv2.destroyAllWindows()
     print("\nBest genome found:\n", winner if 'winner' in locals()
           else "No winner found (early exit).")
@@ -127,4 +132,3 @@ def run(config_file):
 
 if __name__ == "__main__":
     run("neat_config.txt")
-# thissssss
