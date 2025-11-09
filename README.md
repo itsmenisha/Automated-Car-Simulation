@@ -39,3 +39,49 @@ pip install -r requirements.txt
 └── assets/
     └── track.png           # Track image (simulation background)
 
+
+---
+## 🧩 How It Works  
+
+- **Initialization:**  
+  A population of neural networks is created randomly.  
+
+- **Evaluation:**  
+  Each network controls a car in the simulation and receives a fitness score based on performance.  
+
+- **Evolution:**  
+  NEAT selects the fittest individuals and breeds new generations through mutation and crossover.  
+
+- **Visualization:**  
+  You can watch the cars evolve and improve in real time.  
+---
+## 📊 NEAT Configuration  
+
+- **Evolution Parameters:**  
+  The training process is governed by the `neat_config.txt` file, which defines how networks evolve across generations.  
+
+- **You can tune parameters such as:**  
+  - Population size  
+  - Fitness threshold  
+  - Mutation probabilities  
+  - Connection and node addition rates  
+
+This allows fine-tuning how quickly or effectively networks adapt to the environment.  
+
+---
+
+## 🏁 Results  
+
+After several generations, the evolved neural networks successfully learn to navigate the track — avoiding collisions, maintaining smoother turns, and optimizing their path length.  
+Each new generation shows noticeable improvements in control, stability, and efficiency.  
+
+---
+
+## 🧠 Tech Stack  
+
+- **Python**  
+- **OpenAI Gym (v0.21)**  
+- **OpenCV**  
+- **NEAT-Python**  
+- **NumPy**
+
