@@ -25,3 +25,17 @@ Over time, the best-performing cars survive and improve — eventually mastering
 Install dependencies using pip:  
 ```bash
 pip install -r requirements.txt
+```
+---
+
+## Project Structure
+
+├── car_env.py              # Custom car environment
+├── main_neat.py            # Main training script
+├── elite_archive.py        # Saves and loads elite genomes
+├── utiles.py               # Helper functions
+├── neat_config.txt         # NEAT configuration file
+├── requirements.txt        # Dependencies
+└── assets/
+    └── track.png           # Track image (simulation background)
+
