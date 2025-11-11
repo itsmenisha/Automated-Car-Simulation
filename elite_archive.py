@@ -12,11 +12,10 @@ def save_to_archive(genome, fitness, generation=0, max_elites=8):
     """
     global elite_genomes
 
-    # Sanitize fitness
+  
     if fitness is None or not np.isfinite(fitness):
         fitness = 0.0
 
-    # Remove duplicate if same genome key exists
     elite_genomes = [
         (g, f, gen) for (g, f, gen) in elite_genomes if g.key != genome.key
     ]
@@ -60,3 +59,4 @@ def load_elite():
 
     elite_genomes = sanitized
     return elite_genomes
+
